@@ -50,19 +50,38 @@ def TLS_handshake_client(connection, server_ip=SERVER_IP, server_port=SERVER_POR
     ## Instructions ##
     # Fill this function in with the TLS handshake:
     #  * Receive a signed certificate from the server
+    signed_certificate = connection.recv(1024).decode("utf-8")
+
     #  * Verify the certificate with the certificate authority's public key
     #    * Use cryptography_simulator.verify_certificate()
+    try:
+        certificate = cryptgraphy_simulator.verify_certificate(CA_public_key, signed_certificate)
+    except AssertionError as e:
+        raise ValueError(f"Certificate verification failed: {e}")
+    
     #  * Extract the server's public key, IP address, and port from the certificate
+    certificate_parts = certificate.split('|')
+    server_public_key = certificate_parts[0]  # Extracted public key
+    certificate_ip = certificate_parts[1]  # Extracted IP address
+    certificate_port = int(certificate_parts[2])  # Extracted port
+
     #  * Verify that you're communicating with the port and IP specified in the certificate
+    if server_ip != certificate_ip or server_port != certificate_port:
+        raise ValueError("Mismatch between certificate details and server connection details.")
+    
     #  * Generate a symmetric key to send to the server
     #    * Use cryptography_simulator.generate_symmetric_key()
+    symmetric_key = cryptgraphy_simulator.generate_symmetric_key()
+
     #  * Use the server's public key to encrypt the symmetric key
     #    * Use cryptography_simulator.public_key_encrypt()
+    encrypted_symmetric_key = cryptgraphy_simulator.public_key_encrypt(server_public_key, symmetric_key)
+
     #  * Send the encrypted symmetric key to the server
+    connection.send(encrypted_symmetric_key.encode("utf-8"))
+
     #  * Return the symmetric key for use in further communications with the server
-    # Make sure to use encode_message() on communications so the VPN knows which 
-    # server to send them to
-    return 0
+    return symmetric_key
 
 print("client starting - connecting to VPN at IP", VPN_IP, "and port", VPN_PORT)
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:

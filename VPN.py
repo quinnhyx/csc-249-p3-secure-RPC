@@ -18,10 +18,13 @@ def parse_message(message):
     # Parse the application-layer header into the destination SERVER_IP, destination SERVER_PORT,
     # and message to forward to that destination
     # raise NotImplementedError("Your job is to fill this function in. Remove this line when you're done.")
-    SERVER_IP = message[:message.index('~IP~')]
-    SERVER_PORT = int(message[message.index('~IP~')+4:message.index('~port~')])
-    message = message[message.index('~port~')+6:]
-    return SERVER_IP, SERVER_PORT, message
+    try:
+        SERVER_IP = message[:message.index('~IP~')]
+        SERVER_PORT = int(message[message.index('~IP~')+4:message.index('~port~')])
+        message = message[message.index('~port~')+6:]
+        return SERVER_IP, SERVER_PORT, message
+    except (ValueError, IndexError) as e:
+        raise ValueError(f"Malformed message: {message}. Error: {e}")
 
 print("VPN starting - listening for connections at IP", VPN_IP, "and port", VPN_PORT)
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client_socket:

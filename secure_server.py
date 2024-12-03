@@ -28,7 +28,7 @@ SERVER_PORT = args.server_port  # Port to listen on (non-privileged ports are > 
 
 # Format and return a certificate containing the server's socket information and public key
 def format_certificate(public_key):
-    unsigned_certificate = '' # replace this line
+    unsigned_certificate = f"{public_key}|{args.server_IP}|{args.server_port}" # replace this line
     print(f"Prepared the formatted unsigned certificate '{unsigned_certificate}'")
     return unsigned_certificate
 
@@ -62,12 +62,28 @@ def TLS_handshake_server(connection):
     #    * A signed certificate variable should be available as 'signed_certificate'
     #  * Receive an encrypted symmetric key from the client
     #  * Return the symmetric key for use in further communications with the client
-    return 0
+    global signed_certificate  # Use the signed certificate from the setup phase
+
+    # Step 1: Send the signed certificate to the client
+    print(f"Sending signed certificate '{signed_certificate}' to the client")
+    connection.sendall(signed_certificate.encode('utf-8'))
+
+    # Step 2: Receive the encrypted symmetric key from the client
+    encrypted_symmetric_key = connection.recv(1024).decode('utf-8')
+    print(f"Received encrypted symmetric key '{encrypted_symmetric_key}' from the client")
+
+    # Step 3: Decrypt the symmetric key using the private key
+    symmetric_key = cryptgraphy_simulator.private_key_decrypt(private_key, encrypted_symmetric_key)
+    print(f"Decrypted symmetric key: {symmetric_key}")
+
+    # Step 4: Return the symmetric key for further communications
+    return int(symmetric_key)
 
 def process_message(message):
     # Change this function to change the service your server provides
     # Right now, this is an echo server, which is fine, but a bit dull
-    return message
+    reversed_message = message[::-1]  # Reverse the message
+    return reversed_message
 
 print("server starting - listening for connections at IP", SERVER_IP, "and port", SERVER_PORT)
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
